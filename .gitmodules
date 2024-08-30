@@ -1,3 +1,6 @@
 [submodule "external/GNetworking"]
 	path = external/GNetworking
 	url = https://github.com/GustavJones/GNetworking
+[submodule "external/GArgs"]
+	path = external/GArgs
+	url = https://github.com/GustavJones/GArgs
