@@ -1,0 +1,3 @@
+[submodule "external/GNetworking"]
+	path = external/GNetworking
+	url = https://github.com/GustavJones/GNetworking
