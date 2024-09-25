@@ -4,3 +4,6 @@
 [submodule "external/GArgs"]
 	path = external/GArgs
 	url = https://github.com/GustavJones/GArgs
+[submodule "external/GParsing"]
+	path = external/GParsing
+	url = https://github.com/GustavJones/GParsing
