@@ -5,6 +5,8 @@
 
 namespace AdvancedWebserver {
 Server::Server(const std::string &_address, const int &_port) {
+  GNetworking::Socket::Init();
+
   if (m_serverSock.CreateSocket(AF_INET, SOCK_STREAM, 0) < 0) {
     std::cerr << "Failed to create socket" << std::endl;
     std::exit(1);
@@ -56,5 +58,7 @@ Server::~Server() {
     delete m_threads[i].first;
     delete m_threads[i].second;
   }
+
+  GNetworking::Socket::DeInit();
 }
 } // namespace AdvancedWebserver
