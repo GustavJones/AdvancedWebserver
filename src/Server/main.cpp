@@ -1,28 +1,13 @@
-#include "GNetworking/Socket.hpp"
+#include "Server/HandleConnection.hpp"
 #include "Server/Server.hpp"
 #include <iostream>
 
-void HandleConnection(GNetworking::Socket _clientSock, bool *active) {
-  std::string buffer;
-
-  while (true) {
-    buffer = "";
-    _clientSock.Recv(buffer);
-
-    if (buffer == "") {
-      break;
-    } else {
-      std::cout << buffer;
-      _clientSock.Send(buffer);
-    }
-  }
-
-  _clientSock.Close();
-  *active = false;
-}
+static constexpr const char ADDRESS[] = "0.0.0.0";
+static constexpr const int PORT = 8081;
 
 int main(int argc, char *argv[]) {
-  AdvancedWebserver::Server server("0.0.0.0", 8081);
-  server.Run(HandleConnection);
+  AdvancedWebserver::Server server(ADDRESS, PORT);
+  std::cout << "Starting server on: " << ADDRESS << ':' << PORT << std::endl;
+  server.Run(AdvancedWebserver::HandleConnection);
   return 0;
 }
