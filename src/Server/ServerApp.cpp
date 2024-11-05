@@ -1,4 +1,4 @@
-#include "Server/Server.hpp"
+#include "Server/ServerApp.h"
 #include "GNetworking/Socket.hpp"
 #include "openssl/err.h"
 #include "openssl/ssl.h"
@@ -7,16 +7,20 @@
 #include <openssl/types.h>
 
 namespace AdvancedWebserver {
-Server::Server(const std::string &_address, const int &_port) {
+ServerApp::ServerApp(const std::string &_address, const int &_port,
+                     const std::filesystem::path &_dataDir)
+    : m_dataDir(_dataDir) {
   SetupSocket(_address, _port);
   SetupSSL("domain.crt", "domain.key");
 }
 
-void Server::Run(void (*handle_func)(SSL_CTX *, GNetworking::Socket _clientSock,
-                                     bool *active)) {
+void ServerApp::Run(
+    void (*handle_func)(SSL_CTX *, GNetworking::Socket _clientSock,
+                        bool *active, const std::filesystem::path &_dataDir)) {
   bool running = true;
   GNetworking::Socket clientSock;
 
+  // Accept connections and manage threads
   while (running) {
     // Remove closed threads
     for (int i = 0; i < m_threads.size(); i++) {
@@ -34,13 +38,13 @@ void Server::Run(void (*handle_func)(SSL_CTX *, GNetworking::Socket _clientSock,
     m_threads[m_threads.size() - 1].second = new bool(true);
     m_threads[m_threads.size() - 1].first =
         new std::thread(handle_func, m_sslContext, clientSock,
-                        m_threads[m_threads.size() - 1].second);
+                        m_threads[m_threads.size() - 1].second, m_dataDir);
 
     std::this_thread::sleep_for(std::chrono::seconds(2));
   }
 }
 
-void Server::SetupSocket(const std::string &_address, const int &_port) {
+void ServerApp::SetupSocket(const std::string &_address, const int &_port) {
   GNetworking::Socket::Init();
 
   if (m_serverSock.CreateSocket(AF_INET, SOCK_STREAM, 0) < 0) {
@@ -59,8 +63,8 @@ void Server::SetupSocket(const std::string &_address, const int &_port) {
   }
 }
 
-void Server::SetupSSL(const std::string &_cert,
-                      const std::string &_privateKey) {
+void ServerApp::SetupSSL(const std::string &_cert,
+                         const std::string &_privateKey) {
 
   m_sslMethod = TLS_server_method();
   m_sslContext = SSL_CTX_new(m_sslMethod);
@@ -83,7 +87,7 @@ void Server::SetupSSL(const std::string &_cert,
   }
 }
 
-Server::~Server() {
+ServerApp::~ServerApp() {
   // Clean up used threads
   for (int i = 0; i < m_threads.size(); i++) {
     m_threads[i].first->join();

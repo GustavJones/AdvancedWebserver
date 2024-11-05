@@ -1,5 +1,7 @@
 #pragma once
 #include "GNetworking/Socket.hpp"
+#include <cstdlib>
+#include <filesystem>
 #include <openssl/ssl.h>
 #include <openssl/types.h>
 #include <string>
@@ -7,19 +9,22 @@
 #include <vector>
 
 namespace AdvancedWebserver {
-class Server {
+class ServerApp {
 public:
-  Server(const std::string &_address, const int &_port);
-  Server(Server &&) = default;
-  Server(const Server &) = default;
-  Server &operator=(Server &&) = default;
-  Server &operator=(const Server &) = default;
-  ~Server();
+  ServerApp(const std::string &_address, const int &_port,
+            const std::filesystem::path &_dataDir);
+  ServerApp(ServerApp &&) = default;
+  ServerApp(const ServerApp &) = default;
+  ServerApp &operator=(ServerApp &&) = default;
+  ServerApp &operator=(const ServerApp &) = default;
+  ~ServerApp();
 
   void Run(void (*handle_func)(SSL_CTX *, GNetworking::Socket _clientSock,
-                               bool *active));
+                               bool *active,
+                               const std::filesystem::path &_dataDir));
 
 private:
+  std::filesystem::path m_dataDir;
   SSL_CTX *m_sslContext;
   const SSL_METHOD *m_sslMethod;
   GNetworking::Socket m_serverSock;

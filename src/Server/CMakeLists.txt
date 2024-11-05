@@ -7,7 +7,7 @@ find_package(OpenSSL REQUIRED)
 file(GLOB SOURCES "*.cpp")
 add_executable(AdvancedWebserver ${SOURCES})
 target_include_directories(AdvancedWebserver PRIVATE ../../include/ ../../external/GArgs/include/ ../../external/GNetworking/include/ ../../external/GParsing/include/)
-target_link_libraries(AdvancedWebserver PRIVATE GArgs GNetworking GParsing-HTTP OpenSSL::SSL)
+target_link_libraries(AdvancedWebserver PRIVATE GArgs GNetworking GParsing-HTTP OpenSSL::SSL AdvancedWebserver-Configuration)
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
   target_compile_options(AdvancedWebserver PRIVATE -fsanitize=address -fno-omit-frame-pointer)
