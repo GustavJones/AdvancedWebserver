@@ -13,3 +13,5 @@ if(CMAKE_BUILD_TYPE MATCHES "Debug")
   target_compile_options(AdvancedWebserver PRIVATE -fsanitize=address -fno-omit-frame-pointer)
   target_link_options(AdvancedWebserver PRIVATE -fsanitize=address -fno-omit-frame-pointer)
 endif()
+
+install(TARGETS AdvancedWebserver)

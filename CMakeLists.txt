@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 project(AdvancedWebserver)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries or static ones")
 
 add_subdirectory(external/GNetworking)
 add_subdirectory(external/GArgs)
