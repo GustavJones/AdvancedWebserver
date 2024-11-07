@@ -268,8 +268,6 @@ bool SendGetResponse(SSL *_ssl, const GParsing::HTTPRequest &_req) {
     _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
         "Date", {GetCurrentDate()}));
 
-    // _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-    // "Connection", {"Close"}));
     _resp_vector = _resp.CreateResponse();
     SendBuffer(_ssl, _resp_vector);
   } else if (c.GetConfigurationType().GetType() ==
@@ -333,9 +331,6 @@ bool SendGetResponse(SSL *_ssl, const GParsing::HTTPRequest &_req) {
 
     _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
         "Date", {GetCurrentDate()}));
-
-    // _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-    //     "Connection", {"Close"}));
 
     SendBuffer(_ssl, _resp.CreateResponse());
   } else if (c.GetConfigurationType().GetType() ==
