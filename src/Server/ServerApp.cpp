@@ -2,9 +2,13 @@
 #include "GNetworking/Socket.hpp"
 #include "openssl/err.h"
 #include "openssl/ssl.h"
+#include <asm-generic/socket.h>
+#include <csignal>
 #include <cstdlib>
 #include <iostream>
 #include <openssl/types.h>
+#include <signal.h>
+#include <sys/socket.h>
 
 namespace AdvancedWebserver {
 ServerApp::ServerApp(const std::string &_address, const int &_port,
@@ -51,6 +55,10 @@ void ServerApp::SetupSocket(const std::string &_address, const int &_port) {
     std::cerr << "Failed to create socket" << std::endl;
     std::exit(EXIT_FAILURE);
   }
+
+  signal(SIGPIPE, SIG_IGN);
+  setsockopt(m_serverSock.sock, SOL_SOCKET, SO_REUSEADDR, (int *)1,
+             sizeof(int));
 
   if (m_serverSock.Bind(_address, _port) < 0) {
     std::cerr << "Failed to bind socket" << std::endl;

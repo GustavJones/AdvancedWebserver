@@ -332,7 +332,9 @@ bool SendGetResponse(SSL *_ssl, const GParsing::HTTPRequest &_req) {
     _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
         "Date", {GetCurrentDate()}));
 
-    SendBuffer(_ssl, _resp.CreateResponse());
+    if (SendBuffer(_ssl, _resp.CreateResponse()) < 0) {
+      return false;
+    }
   } else if (c.GetConfigurationType().GetType() ==
              AdvancedWebserver::ConfigurationTypes
                  [AdvancedWebserver::EXECUTABLE]
@@ -377,7 +379,11 @@ int SendBuffer(SSL *_ssl, std::vector<unsigned char> _buff) {
   outBuffer = new char[_buff.size()]();
   GParsing::ConvertToCharPointer(_buff, outBuffer);
 
-  sent = SSL_write(_ssl, outBuffer, _buff.size());
+  try {
+    sent = SSL_write(_ssl, outBuffer, _buff.size());
+  } catch (const std::exception &) {
+    sent = -1;
+  }
   delete[] outBuffer;
   return sent;
 }
@@ -411,12 +417,12 @@ std::string GetCurrentDate() {
 }
 
 // Linux only
-// std::time_t ParseDate(const std::string &_time) {
-//   struct std::tm tm;
-//   time_t t;
-//   strptime(_time.c_str(), "%a, %d %b %Y %H:%M:%S GMT", &tm);
-//   t = mktime(&tm);
-//
-//   return t;
-// }
+std::time_t ParseDate(const std::string &_time) {
+  struct std::tm tm;
+  time_t t;
+  strptime(_time.c_str(), "%a, %d %b %Y %H:%M:%S GMT", &tm);
+  t = mktime(&tm);
+
+  return t;
+}
 } // namespace AdvancedWebserver
