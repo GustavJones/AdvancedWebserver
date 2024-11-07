@@ -86,7 +86,8 @@ bool Configuration::ReadFile(const std::filesystem::path &_dataDir,
       }
       path = _dataDir / ('@' + uri_temp.relative_path().string());
       path.erase(path.find(uri_temp.filename()) - 1);
-      if (!std::filesystem::exists(path)) {
+      if (!std::filesystem::exists(path) ||
+          !std::filesystem::is_regular_file(path)) {
         throw std::runtime_error("File not found");
       }
     }
