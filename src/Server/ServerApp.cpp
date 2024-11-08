@@ -2,12 +2,10 @@
 #include "GNetworking/Socket.hpp"
 #include "openssl/err.h"
 #include "openssl/ssl.h"
-#include <asm-generic/socket.h>
 #include <csignal>
 #include <cstdlib>
 #include <iostream>
 #include <openssl/types.h>
-#include <signal.h>
 #include <sys/socket.h>
 
 namespace AdvancedWebserver {
@@ -67,8 +65,11 @@ void ServerApp::SetupSocket(const std::string &_address, const int &_port) {
     tv.tv_sec = 3;
     tv.tv_usec = 0;
 
-    setsockopt(m_serverSock.sock, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv,
-               sizeof(tv));
+    if (setsockopt(m_serverSock.sock, SOL_SOCKET, SO_RCVTIMEO,
+                   (const char *)&tv, sizeof(tv)) < 0) {
+      std::cerr << "Failed to set recieve timeout on socket" << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
   }
 
   if (m_serverSock.Bind(_address, _port) < 0) {

@@ -1,4 +1,5 @@
 #pragma once
+#include "Configuration/Configuration.h"
 #include "GNetworking/Socket.hpp"
 #include "GParsing/HTTP/HTTPRequest.hpp"
 #include "GParsing/HTTP/HTTPResponse.hpp"

@@ -4,9 +4,6 @@
 #include "Core/Core.h"
 #include "GNetworking/Socket.hpp"
 #include "GParsing/GParsing.hpp"
-#include "GParsing/HTTP/HTTPMethod.hpp"
-#include "GParsing/HTTP/HTTPRequest.hpp"
-#include "GParsing/HTTP/HTTPResponse.hpp"
 #include <chrono>
 #include <ctime>
 #include <filesystem>
@@ -15,6 +12,9 @@
 #include <openssl/ssl.h>
 #include <openssl/types.h>
 #include <string>
+#include <sys/poll.h>
+#include <sys/socket.h>
+#include <unistd.h>
 #include <utility>
 #include <vector>
 
@@ -44,6 +44,16 @@ void HandleConnection(SSL_CTX *_sslContext, GNetworking::Socket _clientSock,
 }
 
 bool HandleRequest(SSL *_ssl) {
+  int retval;
+  struct pollfd pfd;
+  pfd.fd = SSL_get_fd(_ssl);
+  pfd.events = POLLIN;
+  retval = poll(&pfd, 1, 0);
+
+  if (retval <= 0) {
+    return false;
+  }
+
   GParsing::HTTPRequest req;
   constexpr const int BUFFER_LENGTH = 1024 * 8;
   int bufferReadLen;
