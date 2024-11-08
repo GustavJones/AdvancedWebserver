@@ -7,6 +7,8 @@
 #include <openssl/types.h>
 #include <vector>
 
+#define LOG(x) std::cout << '[' << GetCurrentDate() << "]: " << x << std::endl
+
 namespace AdvancedWebserver {
 void HandleConnection(SSL_CTX *_sslContext, GNetworking::Socket _clientSock,
                       bool *active, const std::filesystem::path &_dataDir);
@@ -34,4 +36,7 @@ int SendBuffer(SSL *_ssl, std::vector<unsigned char> _buff);
 std::string GetCurrentDate();
 
 std::time_t ParseDate(const std::string &_time);
+
+bool LoadConfiguration(AdvancedWebserver::Configuration &_c,
+                       const std::string &_uri, SSL *_ssl);
 } // namespace AdvancedWebserver

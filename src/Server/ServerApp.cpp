@@ -49,6 +49,8 @@ void ServerApp::Run(
 }
 
 void ServerApp::SetupSocket(const std::string &_address, const int &_port) {
+  constexpr const bool SetRecieveTimeout = false;
+
   GNetworking::Socket::Init();
 
   if (m_serverSock.CreateSocket(AF_INET, SOCK_STREAM, 0) < 0) {
@@ -59,6 +61,15 @@ void ServerApp::SetupSocket(const std::string &_address, const int &_port) {
   signal(SIGPIPE, SIG_IGN);
   setsockopt(m_serverSock.sock, SOL_SOCKET, SO_REUSEADDR, (int *)1,
              sizeof(int));
+
+  if (SetRecieveTimeout) {
+    struct timeval tv;
+    tv.tv_sec = 3;
+    tv.tv_usec = 0;
+
+    setsockopt(m_serverSock.sock, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv,
+               sizeof(tv));
+  }
 
   if (m_serverSock.Bind(_address, _port) < 0) {
     std::cerr << "Failed to bind socket" << std::endl;

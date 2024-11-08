@@ -18,8 +18,6 @@
 #include <utility>
 #include <vector>
 
-#define LOG(x) std::cout << '[' << GetCurrentDate() << "]: " << x << std::endl
-
 namespace AdvancedWebserver {
 
 void HandleConnection(SSL_CTX *_sslContext, GNetworking::Socket _clientSock,
@@ -37,10 +35,12 @@ void HandleConnection(SSL_CTX *_sslContext, GNetworking::Socket _clientSock,
     handling_requests = HandleRequest(ssl);
   }
 
+  int sock_close = SSL_get_fd(ssl);
   SSL_shutdown(ssl);
   SSL_free(ssl);
 
   *active = false;
+  close(sock_close);
 }
 
 bool HandleRequest(SSL *_ssl) {
@@ -86,9 +86,12 @@ bool HandleRequest(SSL *_ssl) {
   switch (req.method) {
   case GParsing::HTTPMethod::GET: {
     bool success = SendGetResponse(_ssl, req);
+    LOG("Sent response for GET request: " + req.uri);
 
     if (success) {
-      LOG("Sent response for GET request: " + req.uri);
+      if (HasHeaderWithValue(req, "Connection", "close")) {
+        success = false;
+      }
     }
 
     return success;
@@ -197,38 +200,14 @@ void SendContinueResponse(SSL *_ssl) {
 }
 
 bool SendGetResponse(SSL *_ssl, const GParsing::HTTPRequest &_req) {
+  // Fix connections not closing
+  constexpr const bool CloseConnectionOnSuccess = false;
+
   GParsing::HTTPResponse _resp;
   std::vector<unsigned char> _resp_vector;
-  Configuration c;
+  AdvancedWebserver::Configuration c;
 
-  if (!c.ReadFile(_req.uri, AdvancedWebserver::DATA_DIR)) {
-    // Configuration doesn't exist, unknown URI
-    LOG("URI configuration " + c.GetURI() + " cannot be found");
-    _resp.version = "HTTP/1.1";
-    _resp.response_code = 404;
-    _resp.response_code_message = "Not Found";
-    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Connection", {"Close"}));
-    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Date", {GetCurrentDate()}));
-
-    _resp_vector = _resp.CreateResponse();
-    SendBuffer(_ssl, _resp_vector);
-
-    return false;
-  } else if (!std::filesystem::exists(c.GetFilePath())) {
-    LOG("File cannot be found found in configuration " + c.GetURI());
-    _resp.version = "HTTP/1.1";
-    _resp.response_code = 404;
-    _resp.response_code_message = "Not Found";
-    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Connection", {"Close"}));
-    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Date", {GetCurrentDate()}));
-
-    _resp_vector = _resp.CreateResponse();
-    SendBuffer(_ssl, _resp_vector);
-
+  if (!LoadConfiguration(c, _req.uri, _ssl)) {
     return false;
   }
 
@@ -268,11 +247,26 @@ bool SendGetResponse(SSL *_ssl, const GParsing::HTTPRequest &_req) {
     _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
         "Date", {GetCurrentDate()}));
 
+    if (CloseConnectionOnSuccess) {
+      _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+          "Connection", {"close"}));
+    } else {
+      _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+          "Connection", {"keep-alive"}));
+    }
+
     _resp_vector = _resp.CreateResponse();
     SendBuffer(_ssl, _resp_vector);
-  } else if (c.GetConfigurationType().GetType() ==
-             AdvancedWebserver::ConfigurationTypes[AdvancedWebserver::FOLDER_IO]
-                 .GetType()) {
+    if (CloseConnectionOnSuccess) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  else if (c.GetConfigurationType().GetType() ==
+           AdvancedWebserver::ConfigurationTypes[AdvancedWebserver::FOLDER_IO]
+               .GetType()) {
     // Folder_IO Configuration
     std::filesystem::path filename;
 
@@ -291,7 +285,7 @@ bool SendGetResponse(SSL *_ssl, const GParsing::HTTPRequest &_req) {
       _resp.response_code = 404;
       _resp.response_code_message = "Not Found";
       _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-          "Connection", {"Close"}));
+          "Connection", {"close"}));
       _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
           "Date", {GetCurrentDate()}));
 
@@ -332,8 +326,20 @@ bool SendGetResponse(SSL *_ssl, const GParsing::HTTPRequest &_req) {
     _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
         "Date", {GetCurrentDate()}));
 
-    if (SendBuffer(_ssl, _resp.CreateResponse()) < 0) {
+    if (CloseConnectionOnSuccess) {
+      _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+          "Connection", {"close"}));
+    } else {
+      _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+          "Connection", {"keep-alive"}));
+    }
+
+    SendBuffer(_ssl, _resp.CreateResponse());
+
+    if (CloseConnectionOnSuccess) {
       return false;
+    } else {
+      return true;
     }
   } else if (c.GetConfigurationType().GetType() ==
              AdvancedWebserver::ConfigurationTypes
@@ -345,7 +351,7 @@ bool SendGetResponse(SSL *_ssl, const GParsing::HTTPRequest &_req) {
     _resp.response_code = 501;
     _resp.response_code_message = "Not Implemented";
     _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Connection", {"Close"}));
+        "Connection", {"close"}));
     _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
         "Date", {GetCurrentDate()}));
 
@@ -362,7 +368,7 @@ bool SendGetResponse(SSL *_ssl, const GParsing::HTTPRequest &_req) {
     _resp.response_code = 501;
     _resp.response_code_message = "Not Implemented";
     _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Connection", {"Close"}));
+        "Connection", {"close"}));
     _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
         "Date", {GetCurrentDate()}));
 
@@ -370,7 +376,7 @@ bool SendGetResponse(SSL *_ssl, const GParsing::HTTPRequest &_req) {
     SendBuffer(_ssl, _resp_vector);
     return false;
   }
-  return true;
+  return false;
 }
 
 int SendBuffer(SSL *_ssl, std::vector<unsigned char> _buff) {
@@ -425,4 +431,44 @@ std::time_t ParseDate(const std::string &_time) {
 
   return t;
 }
+
+bool LoadConfiguration(AdvancedWebserver::Configuration &_c,
+                       const std::string &_uri, SSL *_ssl) {
+  GParsing::HTTPResponse _resp;
+  std::vector<unsigned char> _resp_vector;
+
+  if (!_c.ReadFile(_uri, AdvancedWebserver::DATA_DIR)) {
+    // Configuration doesn't exist, unknown URI
+    LOG("URI configuration " + _c.GetURI() + " cannot be found");
+    _resp.version = "HTTP/1.1";
+    _resp.response_code = 404;
+    _resp.response_code_message = "Not Found";
+    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+        "Connection", {"close"}));
+    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+        "Date", {GetCurrentDate()}));
+
+    _resp_vector = _resp.CreateResponse();
+    SendBuffer(_ssl, _resp_vector);
+
+    return false;
+  } else if (!std::filesystem::exists(_c.GetFilePath())) {
+    LOG("File cannot be found found in configuration " + _c.GetURI());
+    _resp.version = "HTTP/1.1";
+    _resp.response_code = 404;
+    _resp.response_code_message = "Not Found";
+    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+        "Connection", {"close"}));
+    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+        "Date", {GetCurrentDate()}));
+
+    _resp_vector = _resp.CreateResponse();
+    SendBuffer(_ssl, _resp_vector);
+
+    return false;
+  }
+
+  return true;
+}
+
 } // namespace AdvancedWebserver
