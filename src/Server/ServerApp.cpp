@@ -41,8 +41,6 @@ void ServerApp::Run(
     m_threads[m_threads.size() - 1].first =
         new std::thread(handle_func, m_sslContext, clientSock,
                         m_threads[m_threads.size() - 1].second, m_dataDir);
-
-    std::this_thread::sleep_for(std::chrono::seconds(2));
   }
 }
 

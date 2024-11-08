@@ -432,7 +432,6 @@ std::string GetCurrentDate() {
   return out;
 }
 
-// Linux only
 std::time_t ParseDate(const std::string &_time) {
   struct std::tm tm;
   time_t t;
