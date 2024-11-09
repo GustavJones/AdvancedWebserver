@@ -30,13 +30,13 @@ private:
 // Pre defined types of configurations
 static const std::vector<ConfigurationType> ConfigurationTypes = {
     {"file_io", "Read/Write a file from disk and return content. Works for a "
-                "fixed URI path and a single file."},
+                "static URI path and a single file."},
     {"folder_io",
      "Read/Write a file from disk and return content. Works with "
      "dynamic URI path and multiple corresponding files in the folder."},
     {"executable",
      "Execute a file with URI and the request as command line arguments "
-     "and response as output. Works for a fixed URI path and a single "
+     "and response as output. Works for a static URI path and a single "
      "executable."},
     {"cascading_executable",
      "Execute a file with URI and the request as "

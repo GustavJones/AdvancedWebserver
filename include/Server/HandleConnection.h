@@ -40,4 +40,17 @@ std::time_t ParseDate(const std::string &_time);
 
 bool LoadConfiguration(AdvancedWebserver::Configuration &_c,
                        const std::string &_uri, SSL *_ssl);
+
+bool SendGetFileIOResponse(AdvancedWebserver::Configuration &_c, SSL *_ssl,
+                           bool _closeConnectionsOnSuccess = false);
+
+bool SendGetFolderIOResponse(AdvancedWebserver::Configuration &_c, SSL *_ssl,
+                             bool _closeConnectionsOnSuccess = false);
+
+bool SendGetExecutableResponse(AdvancedWebserver::Configuration &_c, SSL *_ssl,
+                               bool _closeConnectionsOnSuccess = false);
+
+bool SendGetCascadingExecutableResponse(
+    AdvancedWebserver::Configuration &_c, SSL *_ssl,
+    bool _closeConnectionsOnSuccess = false);
 } // namespace AdvancedWebserver

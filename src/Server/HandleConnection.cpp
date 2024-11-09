@@ -83,14 +83,14 @@ bool HandleRequest(SSL *_ssl) {
     return false;
   }
 
-  hasHostHeader = HasHostHeader(req);
-
-  if (!hasHostHeader && req.version == "HTTP/1.1") {
+  if (!HasHostHeader(req) && req.version == "HTTP/1.1") {
     SendHostHeaderErrorResponse(_ssl);
     return false;
   }
 
-  SendContinueResponse(_ssl);
+  if (HasHeaderWithValue(req, "Expect", "100-continue")) {
+    SendContinueResponse(_ssl);
+  }
 
   // Handle Requests
   switch (req.method) {
@@ -213,10 +213,9 @@ bool SendGetResponse(SSL *_ssl, const GParsing::HTTPRequest &_req) {
   // Fix connections not closing
   constexpr const bool CloseConnectionOnSuccess = false;
 
-  GParsing::HTTPResponse _resp;
-  std::vector<unsigned char> _resp_vector;
   AdvancedWebserver::Configuration c;
 
+  // Load configuration from disk according to URI
   if (!LoadConfiguration(c, _req.uri, _ssl)) {
     return false;
   }
@@ -225,166 +224,25 @@ bool SendGetResponse(SSL *_ssl, const GParsing::HTTPRequest &_req) {
   if (c.GetConfigurationType().GetType() ==
       AdvancedWebserver::ConfigurationTypes[AdvancedWebserver::FILE_IO]
           .GetType()) {
-    // File_IO Configuration
-    _resp.response_code = 200;
-    _resp.version = "HTTP/1.1";
-    _resp.response_code_message = "OK";
-
-    std::fstream file;
-    int fileSize;
-    char *buf;
-
-    file.open(c.GetFilePath(), std::ios::in | std::ios::ate);
-    fileSize = file.tellg();
-    file.seekg(file.beg);
-
-    buf = new char[fileSize]();
-
-    file.read(buf, fileSize);
-    file.close();
-
-    std::vector<unsigned char> messageVector =
-        GParsing::ConvertToCharArray(buf, fileSize);
-    delete[] buf;
-
-    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Content-Type", {c.GetFileType()}));
-
-    _resp.message = messageVector;
-    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Content-Length", {std::to_string(_resp.message.size())}));
-
-    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Date", {GetCurrentDate()}));
-
-    if (CloseConnectionOnSuccess) {
-      _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-          "Connection", {"close"}));
-    } else {
-      _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-          "Connection", {"keep-alive"}));
-    }
-
-    _resp_vector = _resp.CreateResponse();
-    SendBuffer(_ssl, _resp_vector);
-    if (CloseConnectionOnSuccess) {
-      return false;
-    } else {
-      return true;
-    }
+    return SendGetFileIOResponse(c, _ssl, CloseConnectionOnSuccess);
   }
 
   else if (c.GetConfigurationType().GetType() ==
            AdvancedWebserver::ConfigurationTypes[AdvancedWebserver::FOLDER_IO]
                .GetType()) {
-    // Folder_IO Configuration
-    std::filesystem::path filename;
+    return SendGetFolderIOResponse(c, _ssl, CloseConnectionOnSuccess);
 
-    for (int i = c.GetURI().length() - 1; i >= 0; i--) {
-      if (c.GetURI()[i] == '/') {
-        filename = c.GetURI().substr(i + 1);
-        break;
-      }
-    }
-
-    if (!std::filesystem::exists(c.GetFilePath() / filename)) {
-      LOG("Path " + (c.GetFilePath() / filename).string() +
-          " doesn't exist cannot GET");
-
-      _resp.version = "HTTP/1.1";
-      _resp.response_code = 404;
-      _resp.response_code_message = "Not Found";
-      _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-          "Connection", {"close"}));
-      _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-          "Date", {GetCurrentDate()}));
-
-      _resp_vector = _resp.CreateResponse();
-      SendBuffer(_ssl, _resp_vector);
-
-      return false;
-    }
-
-    std::fstream file;
-    int fileSize;
-    char *buf;
-
-    file.open(c.GetFilePath() / filename, std::ios::in | std::ios::ate);
-    fileSize = file.tellg();
-    file.seekg(file.beg);
-
-    buf = new char[fileSize]();
-
-    file.read(buf, fileSize);
-    file.close();
-
-    std::vector<unsigned char> messageVector =
-        GParsing::ConvertToCharArray(buf, fileSize);
-    delete[] buf;
-
-    _resp.version = "HTTP/1.1";
-    _resp.response_code = 200;
-    _resp.response_code_message = "OK";
-
-    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Content-Type", {c.GetFileType()}));
-
-    _resp.message = messageVector;
-    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Content-Length", {std::to_string(_resp.message.size())}));
-
-    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Date", {GetCurrentDate()}));
-
-    if (CloseConnectionOnSuccess) {
-      _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-          "Connection", {"close"}));
-    } else {
-      _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-          "Connection", {"keep-alive"}));
-    }
-
-    SendBuffer(_ssl, _resp.CreateResponse());
-
-    if (CloseConnectionOnSuccess) {
-      return false;
-    } else {
-      return true;
-    }
   } else if (c.GetConfigurationType().GetType() ==
              AdvancedWebserver::ConfigurationTypes
                  [AdvancedWebserver::EXECUTABLE]
                      .GetType()) {
-    // Executable Configuration
-    // TODO
-    _resp.version = "HTTP/1.1";
-    _resp.response_code = 501;
-    _resp.response_code_message = "Not Implemented";
-    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Connection", {"close"}));
-    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Date", {GetCurrentDate()}));
-
-    _resp_vector = _resp.CreateResponse();
-    SendBuffer(_ssl, _resp_vector);
-    return false;
+    return SendGetExecutableResponse(c, _ssl, CloseConnectionOnSuccess);
   } else if (c.GetConfigurationType().GetType() ==
              AdvancedWebserver::ConfigurationTypes
                  [AdvancedWebserver::CASCADING_EXECUTABLE]
                      .GetType()) {
-    // Cascading Executable Configuration
-    // TODO
-    _resp.version = "HTTP/1.1";
-    _resp.response_code = 501;
-    _resp.response_code_message = "Not Implemented";
-    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Connection", {"close"}));
-    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Date", {GetCurrentDate()}));
-
-    _resp_vector = _resp.CreateResponse();
-    SendBuffer(_ssl, _resp_vector);
-    return false;
+    return SendGetCascadingExecutableResponse(c, _ssl,
+                                              CloseConnectionOnSuccess);
   }
   return false;
 }
@@ -443,6 +301,7 @@ std::time_t ParseDate(const std::string &_time) {
 
 bool LoadConfiguration(AdvancedWebserver::Configuration &_c,
                        const std::string &_uri, SSL *_ssl) {
+  std::filesystem::path filePath;
   GParsing::HTTPResponse _resp;
   std::vector<unsigned char> _resp_vector;
 
@@ -461,7 +320,15 @@ bool LoadConfiguration(AdvancedWebserver::Configuration &_c,
     SendBuffer(_ssl, _resp_vector);
 
     return false;
-  } else if (!std::filesystem::exists(_c.GetFilePath())) {
+  }
+
+  if (_c.GetFilename() != "") {
+    filePath = _c.GetPath() / _c.GetFilename();
+  } else {
+    filePath = _c.GetPath();
+  }
+
+  if (!std::filesystem::exists(filePath)) {
     LOG("File cannot be found found in configuration " + _c.GetURI());
     _resp.version = "HTTP/1.1";
     _resp.response_code = 404;
@@ -478,6 +345,186 @@ bool LoadConfiguration(AdvancedWebserver::Configuration &_c,
   }
 
   return true;
+}
+
+bool SendGetFileIOResponse(Configuration &_c, SSL *_ssl,
+                           bool _closeConnectionsOnSuccess) {
+  GParsing::HTTPResponse _resp;
+  std::vector<unsigned char> _resp_vector;
+
+  std::filesystem::path filePath;
+  std::fstream file;
+  int fileSize;
+  char *buf;
+
+  if (_c.GetFilename() != "") {
+    filePath = _c.GetPath() / _c.GetFilename();
+  } else {
+    filePath = _c.GetPath();
+  }
+
+  // File_IO Configuration
+  _resp.response_code = 200;
+  _resp.version = "HTTP/1.1";
+  _resp.response_code_message = "OK";
+
+  file.open(filePath, std::ios::in | std::ios::ate);
+  fileSize = file.tellg();
+  file.seekg(file.beg);
+
+  buf = new char[fileSize]();
+
+  file.read(buf, fileSize);
+  file.close();
+
+  std::vector<unsigned char> messageVector =
+      GParsing::ConvertToCharArray(buf, fileSize);
+  delete[] buf;
+
+  _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+      "Content-Type", {_c.GetFileType()}));
+
+  _resp.message = messageVector;
+  _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+      "Content-Length", {std::to_string(_resp.message.size())}));
+
+  _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+      "Date", {GetCurrentDate()}));
+
+  if (_closeConnectionsOnSuccess) {
+    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+        "Connection", {"close"}));
+  } else {
+    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+        "Connection", {"keep-alive"}));
+  }
+
+  _resp_vector = _resp.CreateResponse();
+  SendBuffer(_ssl, _resp_vector);
+  if (_closeConnectionsOnSuccess) {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+bool SendGetFolderIOResponse(AdvancedWebserver::Configuration &_c, SSL *_ssl,
+                             bool _closeConnectionsOnSuccess) {
+  GParsing::HTTPResponse _resp;
+  std::vector<unsigned char> _resp_vector;
+
+  std::filesystem::path filePath;
+  std::fstream file;
+  int fileSize;
+  char *buf;
+
+  if (_c.GetFilename() != "") {
+    filePath = _c.GetPath() / _c.GetFilename();
+  } else {
+    filePath = _c.GetPath();
+  }
+
+  // Folder_IO Configuration
+  if (!std::filesystem::exists(filePath)) {
+    LOG("Path " + (filePath).string() + " doesn't exist cannot GET");
+
+    _resp.version = "HTTP/1.1";
+    _resp.response_code = 404;
+    _resp.response_code_message = "Not Found";
+    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+        "Connection", {"close"}));
+    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+        "Date", {GetCurrentDate()}));
+
+    _resp_vector = _resp.CreateResponse();
+    SendBuffer(_ssl, _resp_vector);
+
+    return false;
+  }
+
+  file.open(filePath, std::ios::in | std::ios::ate);
+  fileSize = file.tellg();
+  file.seekg(file.beg);
+
+  buf = new char[fileSize]();
+
+  file.read(buf, fileSize);
+  file.close();
+
+  std::vector<unsigned char> messageVector =
+      GParsing::ConvertToCharArray(buf, fileSize);
+  delete[] buf;
+
+  _resp.version = "HTTP/1.1";
+  _resp.response_code = 200;
+  _resp.response_code_message = "OK";
+
+  _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+      "Content-Type", {_c.GetFileType()}));
+
+  _resp.message = messageVector;
+  _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+      "Content-Length", {std::to_string(_resp.message.size())}));
+
+  _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+      "Date", {GetCurrentDate()}));
+
+  if (_closeConnectionsOnSuccess) {
+    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+        "Connection", {"close"}));
+  } else {
+    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+        "Connection", {"keep-alive"}));
+  }
+
+  SendBuffer(_ssl, _resp.CreateResponse());
+
+  if (_closeConnectionsOnSuccess) {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+bool SendGetExecutableResponse(AdvancedWebserver::Configuration &_c, SSL *_ssl,
+                               bool _closeConnectionsOnSuccess) {
+  GParsing::HTTPResponse _resp;
+  std::vector<unsigned char> _resp_vector;
+
+  // Executable Configuration
+  // TODO
+  _resp.version = "HTTP/1.1";
+  _resp.response_code = 501;
+  _resp.response_code_message = "Not Implemented";
+  _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+      "Connection", {"close"}));
+  _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+      "Date", {GetCurrentDate()}));
+
+  _resp_vector = _resp.CreateResponse();
+  SendBuffer(_ssl, _resp_vector);
+  return false;
+}
+
+bool SendGetCascadingExecutableResponse(AdvancedWebserver::Configuration &_c,
+                                        SSL *_ssl,
+                                        bool _closeConnectionsOnSuccess) {
+  GParsing::HTTPResponse _resp;
+  std::vector<unsigned char> _resp_vector;
+
+  // Cascading Executable Configuration
+  // TODO
+  _resp.version = "HTTP/1.1";
+  _resp.response_code = 501;
+  _resp.response_code_message = "Not Implemented";
+  _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+      "Connection", {"close"}));
+  _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+      "Date", {GetCurrentDate()}));
+
+  _resp_vector = _resp.CreateResponse();
+  SendBuffer(_ssl, _resp_vector);
+  return false;
 }
 
 } // namespace AdvancedWebserver

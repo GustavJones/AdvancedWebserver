@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  c.SetFilePath(p["file"][0]);
+  c.SetPath(p["file"][0]);
   c.SetFileType(p["http_file_type"][0]);
 
   if (c.WriteFile(AdvancedWebserver::DATA_DIR)) {
