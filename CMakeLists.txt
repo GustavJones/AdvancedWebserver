@@ -10,6 +10,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND ENABLE_WARNINGS_ON_DEBUG_BUILD)
   add_compile_options(-Wall)
 endif()
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+  add_link_options(-fsanitize=address -fno-omit-frame-pointer)
+endif()
+
 add_subdirectory(external/GNetworking)
 add_subdirectory(external/GArgs)
 add_subdirectory(external/GParsing)
