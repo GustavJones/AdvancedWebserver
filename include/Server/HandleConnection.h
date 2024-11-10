@@ -12,7 +12,7 @@
 
 namespace AdvancedWebserver {
 void HandleConnection(SSL_CTX *_sslContext, GNetworking::Socket _clientSock,
-                      bool *active, const std::filesystem::path &_dataDir);
+                      const std::filesystem::path &_dataDir);
 
 bool HandleRequest(SSL *_ssl);
 

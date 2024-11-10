@@ -18,29 +18,15 @@ ServerApp::ServerApp(const std::string &_address, const int &_port,
 
 void ServerApp::Run(
     void (*handle_func)(SSL_CTX *, GNetworking::Socket _clientSock,
-                        bool *active, const std::filesystem::path &_dataDir)) {
+                        const std::filesystem::path &_dataDir)) {
   bool running = true;
   GNetworking::Socket clientSock;
 
   // Accept connections and manage threads
   while (running) {
-    // Remove closed threads
-    for (int i = 0; i < m_threads.size(); i++) {
-      if (!m_threads[i].second) {
-        m_threads[i].first->join();
-        delete m_threads[i].first;
-        delete m_threads[i].second;
-
-        m_threads.erase(m_threads.begin() + i);
-      }
-    }
-
     m_serverSock.Accept(clientSock);
-    m_threads.push_back(std::pair<std::thread *, bool *>());
-    m_threads[m_threads.size() - 1].second = new bool(true);
-    m_threads[m_threads.size() - 1].first =
-        new std::thread(handle_func, m_sslContext, clientSock,
-                        m_threads[m_threads.size() - 1].second, m_dataDir);
+    std::thread t(handle_func, m_sslContext, clientSock, m_dataDir);
+    t.detach();
   }
 }
 

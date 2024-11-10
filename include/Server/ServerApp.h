@@ -20,7 +20,6 @@ public:
   ~ServerApp();
 
   void Run(void (*handle_func)(SSL_CTX *, GNetworking::Socket _clientSock,
-                               bool *active,
                                const std::filesystem::path &_dataDir));
 
 private:

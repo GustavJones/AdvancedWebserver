@@ -21,7 +21,7 @@
 namespace AdvancedWebserver {
 
 void HandleConnection(SSL_CTX *_sslContext, GNetworking::Socket _clientSock,
-                      bool *active, const std::filesystem::path &_dataDir) {
+                      const std::filesystem::path &_dataDir) {
   AdvancedWebserver::DATA_DIR = _dataDir;
 
   bool handling_requests = true;
@@ -39,7 +39,6 @@ void HandleConnection(SSL_CTX *_sslContext, GNetworking::Socket _clientSock,
   SSL_shutdown(ssl);
   SSL_free(ssl);
 
-  *active = false;
   close(sock_close);
 }
 
