@@ -23,16 +23,17 @@ ServerApp::ServerApp(const std::string &_address, const int &_port,
 void ServerApp::Run(
     void (*handle_func)(SSL_CTX *, GNetworking::Socket _clientSock,
                         const std::filesystem::path &_dataDir)) {
+  constexpr const int ConnectionDelay = 10;
   bool running = true;
   GNetworking::Socket clientSock;
 
   // Accept connections and manage threads
   while (running) {
     if (m_serverSock.Accept(clientSock) < 0) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      std::this_thread::sleep_for(std::chrono::milliseconds(ConnectionDelay));
       continue;
     };
-    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    std::this_thread::sleep_for(std::chrono::milliseconds(ConnectionDelay));
     std::thread t(handle_func, m_sslContext, clientSock, m_dataDir);
     t.detach();
   }
