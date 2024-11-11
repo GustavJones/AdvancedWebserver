@@ -1,5 +1,6 @@
 #include "Server/ServerApp.h"
 #include "GNetworking/Socket.hpp"
+#include "Server/HandleConnection.h"
 #include "openssl/err.h"
 #include "openssl/ssl.h"
 #include <bits/types/struct_timeval.h>
@@ -30,12 +31,13 @@ void ServerApp::Run(
   // Accept connections and manage threads
   while (running) {
     if (m_serverSock.Accept(clientSock) < 0) {
+      LOG("Connection Accept failed");
       std::this_thread::sleep_for(std::chrono::milliseconds(ConnectionDelay));
       continue;
     };
-    std::this_thread::sleep_for(std::chrono::milliseconds(ConnectionDelay));
     std::thread t(handle_func, m_sslContext, clientSock, m_dataDir);
     t.detach();
+    std::this_thread::sleep_for(std::chrono::milliseconds(ConnectionDelay));
   }
 }
 

@@ -56,13 +56,16 @@ void HandleConnection(SSL_CTX *_sslContext, GNetworking::Socket _clientSock,
 }
 
 bool HandleRequest(SSL *_ssl) {
+  constexpr const bool ContinueOverride = true;
+
   int retval;
   struct pollfd pfd;
   pfd.fd = SSL_get_fd(_ssl);
-  pfd.events = POLLIN;
+  pfd.events = POLLRDHUP;
   retval = poll(&pfd, 1, 0);
 
-  if (retval <= 0) {
+  if (retval < 0 || retval > 0) {
+    LOG("Client disconnected");
     return false;
   }
 
@@ -101,6 +104,8 @@ bool HandleRequest(SSL *_ssl) {
   }
 
   if (HasHeaderWithValue(req, "Expect", "100-continue")) {
+    SendContinueResponse(_ssl);
+  } else if (ContinueOverride) {
     SendContinueResponse(_ssl);
   }
 
