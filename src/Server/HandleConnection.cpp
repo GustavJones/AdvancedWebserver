@@ -29,10 +29,23 @@ void HandleConnection(SSL_CTX *_sslContext, GNetworking::Socket _clientSock,
 
   ssl = SSL_new(_sslContext);
   SSL_set_fd(ssl, _clientSock.sock);
-  SSL_accept(ssl);
 
-  while (handling_requests) {
-    handling_requests = HandleRequest(ssl);
+  int retval;
+  struct pollfd pfd;
+  pfd.fd = _clientSock.sock;
+  pfd.events = POLLRDHUP;
+  retval = poll(&pfd, 1, 0);
+
+  if (retval == 0) {
+    SSL_accept(ssl);
+
+    while (handling_requests) {
+      handling_requests = HandleRequest(ssl);
+    }
+  } else {
+    std::cout << "----------------" << std::endl;
+    LOG("Socket Closed before SSL Handshake");
+    std::cout << "----------------" << std::endl;
   }
 
   int sock_close = SSL_get_fd(ssl);
@@ -169,7 +182,6 @@ bool HasHostHeader(const GParsing::HTTPRequest &_req) {
 void SendHostHeaderErrorResponse(SSL *_ssl) {
   GParsing::HTTPResponse resp;
   std::vector<unsigned char> respVector;
-  char *respBuffer;
   std::string msg;
 
   msg = "<html><body>\r\n<h2>No Host: header received</h2>\r\nHTTP 1.1 "
@@ -188,12 +200,7 @@ void SendHostHeaderErrorResponse(SSL *_ssl) {
   resp.message = GParsing::ConvertToCharArray(msg.c_str(), msg.length());
 
   respVector = resp.CreateResponse();
-  respBuffer = new char[respVector.size()]();
-
-  GParsing::ConvertToCharPointer(respVector, respBuffer);
-
-  SSL_write(_ssl, respBuffer, respVector.size());
-  delete[] respBuffer;
+  SendBuffer(_ssl, respVector);
 }
 
 void SendContinueResponse(SSL *_ssl) {
@@ -251,6 +258,17 @@ int SendBuffer(SSL *_ssl, std::vector<unsigned char> _buff) {
   char *outBuffer;
   outBuffer = new char[_buff.size()]();
   GParsing::ConvertToCharPointer(_buff, outBuffer);
+
+  int retval;
+  struct pollfd pfd;
+  pfd.fd = SSL_get_fd(_ssl);
+  pfd.events = POLLIN;
+  retval = poll(&pfd, 1, 0);
+
+  if (retval != 0) {
+    delete[] outBuffer;
+    return -1;
+  }
 
   try {
     sent = SSL_write(_ssl, outBuffer, _buff.size());

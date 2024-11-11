@@ -2,11 +2,15 @@
 #include "GNetworking/Socket.hpp"
 #include "openssl/err.h"
 #include "openssl/ssl.h"
+#include <bits/types/struct_timeval.h>
+#include <chrono>
 #include <csignal>
 #include <cstdlib>
+#include <fcntl.h>
 #include <iostream>
 #include <openssl/types.h>
 #include <sys/socket.h>
+#include <thread>
 
 namespace AdvancedWebserver {
 ServerApp::ServerApp(const std::string &_address, const int &_port,
@@ -24,7 +28,11 @@ void ServerApp::Run(
 
   // Accept connections and manage threads
   while (running) {
-    m_serverSock.Accept(clientSock);
+    if (m_serverSock.Accept(clientSock) < 0) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      continue;
+    };
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
     std::thread t(handle_func, m_sslContext, clientSock, m_dataDir);
     t.detach();
   }
@@ -32,6 +40,7 @@ void ServerApp::Run(
 
 void ServerApp::SetupSocket(const std::string &_address, const int &_port) {
   constexpr const bool SetRecieveTimeout = false;
+  constexpr const bool SetSendTimeout = false;
 
   GNetworking::Socket::Init();
 
@@ -40,7 +49,8 @@ void ServerApp::SetupSocket(const std::string &_address, const int &_port) {
     std::exit(EXIT_FAILURE);
   }
 
-  signal(SIGPIPE, SIG_IGN);
+  // fcntl(m_serverSock.sock, F_SETFL,
+  // fcntl(m_serverSock.sock, F_GETFL, 0) | O_NONBLOCK);
   setsockopt(m_serverSock.sock, SOL_SOCKET, SO_REUSEADDR, (int *)1,
              sizeof(int));
 
@@ -52,6 +62,18 @@ void ServerApp::SetupSocket(const std::string &_address, const int &_port) {
     if (setsockopt(m_serverSock.sock, SOL_SOCKET, SO_RCVTIMEO,
                    (const char *)&tv, sizeof(tv)) < 0) {
       std::cerr << "Failed to set recieve timeout on socket" << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+  }
+
+  if (SetSendTimeout) {
+    struct timeval tv;
+    tv.tv_sec = 3;
+    tv.tv_usec = 0;
+
+    if (setsockopt(m_serverSock.sock, SOL_SOCKET, SO_SNDTIMEO,
+                   (const char *)&tv, sizeof(tv)) < 0) {
+      std::cerr << "Failed to set send timeout on socket" << std::endl;
       std::exit(EXIT_FAILURE);
     }
   }
@@ -92,13 +114,6 @@ void ServerApp::SetupSSL(const std::string &_cert,
 }
 
 ServerApp::~ServerApp() {
-  // Clean up used threads
-  for (int i = 0; i < m_threads.size(); i++) {
-    m_threads[i].first->join();
-    delete m_threads[i].first;
-    delete m_threads[i].second;
-  }
-
   GNetworking::Socket::DeInit();
 
   SSL_CTX_free(m_sslContext);
