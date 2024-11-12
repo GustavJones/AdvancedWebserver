@@ -447,7 +447,8 @@ bool SendGetFolderIOResponse(AdvancedWebserver::Configuration &_c, SSL *_ssl,
   }
 
   // Folder_IO Configuration
-  if (!std::filesystem::exists(filePath)) {
+  if (!std::filesystem::exists(filePath) ||
+      !std::filesystem::is_regular_file(filePath)) {
     LOG("Path " + (filePath).string() + " doesn't exist cannot GET");
 
     _resp.version = "HTTP/1.1";
