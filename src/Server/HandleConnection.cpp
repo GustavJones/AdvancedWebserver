@@ -30,13 +30,11 @@ void HandleConnection(SSL_CTX *_sslContext, GNetworking::Socket _clientSock,
   ssl = SSL_new(_sslContext);
   SSL_set_fd(ssl, _clientSock.sock);
 
-  int retval;
   struct pollfd pfd;
   pfd.fd = _clientSock.sock;
   pfd.events = POLLRDHUP;
-  retval = poll(&pfd, 1, 0);
 
-  if (retval == 0) {
+  if (poll(&pfd, 1, 0) == 0) {
     SSL_accept(ssl);
 
     while (handling_requests) {
@@ -58,6 +56,16 @@ void HandleConnection(SSL_CTX *_sslContext, GNetworking::Socket _clientSock,
 bool HandleRequest(SSL *_ssl) {
   constexpr const bool ContinueOverride = true;
 
+  GParsing::HTTPRequest req;
+  constexpr const int BUFFER_LENGTH = 1024 * 8;
+  int bufferReadLen;
+  bool hasHostHeader;
+
+  char *buffer = new char[BUFFER_LENGTH]();
+  for (int i = 0; i < BUFFER_LENGTH; i++) {
+    buffer[i] = 0;
+  }
+
   int retval;
   struct pollfd pfd;
   pfd.fd = SSL_get_fd(_ssl);
@@ -67,16 +75,6 @@ bool HandleRequest(SSL *_ssl) {
   if (retval < 0 || retval > 0) {
     LOG("Client disconnected");
     return false;
-  }
-
-  GParsing::HTTPRequest req;
-  constexpr const int BUFFER_LENGTH = 1024 * 8;
-  int bufferReadLen;
-  bool hasHostHeader;
-
-  char *buffer = new char[BUFFER_LENGTH]();
-  for (int i = 0; i < BUFFER_LENGTH; i++) {
-    buffer[i] = 0;
   }
 
   // Accept Requests
@@ -267,7 +265,7 @@ int SendBuffer(SSL *_ssl, std::vector<unsigned char> _buff) {
   int retval;
   struct pollfd pfd;
   pfd.fd = SSL_get_fd(_ssl);
-  pfd.events = POLLIN;
+  pfd.events = POLLRDHUP;
   retval = poll(&pfd, 1, 0);
 
   if (retval != 0) {

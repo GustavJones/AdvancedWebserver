@@ -59,6 +59,8 @@ void ServerApp::SetupSocket(const std::string &_address, const int &_port) {
   setsockopt(m_serverSock.sock, SOL_SOCKET, SO_REUSEADDR, (int *)1,
              sizeof(int));
 
+  signal(SIGPIPE, SIG_IGN);
+
   if (SetRecieveTimeout) {
     struct timeval tv;
     tv.tv_sec = 3;
