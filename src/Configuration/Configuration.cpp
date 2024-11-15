@@ -81,17 +81,14 @@ bool Configuration::ReadFile(const std::filesystem::path &_dataDir,
   int delimiterIndexOld;
   int delimiterIndex;
   std::string type;
+  std::string filename;
 
   if (IsStaticType(_dataDir, _slashReplace)) {
     path = GetStaticPath(_dataDir, _slashReplace);
-
-    // Filename
-    SetFilename("");
+    filename = "";
   } else if (IsDynamicType(_dataDir, _slashReplace)) {
     path = GetDynamicPath(_dataDir, _slashReplace);
-
-    // Filename
-    SetFilename(GetDynamicFilename(GetURI(), _slashReplace));
+    filename = GetDynamicFilename(GetURI(), _slashReplace);
   } else {
     return false;
   }
@@ -135,6 +132,10 @@ bool Configuration::ReadFile(const std::filesystem::path &_dataDir,
   SetPath(f_content.substr(delimiterIndexOld + 1,
                            delimiterIndex - delimiterIndexOld - 1));
 
+  if (filename != "") {
+    SetPath(GetPath() / filename);
+  }
+
   // File type
   SetFileType(f_content.substr(delimiterIndex + 1));
 
@@ -156,8 +157,6 @@ Configuration::GetConfigurationType() const {
 const std::filesystem::path &Configuration::GetPath() const { return m_path; }
 const std::string &Configuration::GetFileType() const { return m_fileType; }
 
-const std::string &Configuration::GetFilename() const { return m_filename; }
-
 void Configuration::SetURI(const std::string &_uri) { m_uri = _uri; }
 void Configuration::SetConfigurationType(
     const AdvancedWebserver::ConfigurationType &_ct) {
@@ -168,10 +167,6 @@ void Configuration::SetPath(const std::filesystem::path &_path) {
 }
 void Configuration::SetFileType(const std::string &_fileType) {
   m_fileType = _fileType;
-}
-
-void Configuration::SetFilename(const std::string &_filename) {
-  m_filename = _filename;
 }
 
 Configuration::~Configuration() {}

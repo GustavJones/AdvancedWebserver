@@ -31,17 +31,14 @@ public:
   const AdvancedWebserver::ConfigurationType &GetConfigurationType() const;
   const std::filesystem::path &GetPath() const;
   const std::string &GetFileType() const;
-  const std::string &GetFilename() const;
 
   void SetURI(const std::string &_uri);
   void SetConfigurationType(const AdvancedWebserver::ConfigurationType &_ct);
   void SetPath(const std::filesystem::path &_path);
   void SetFileType(const std::string &_fileType);
-  void SetFilename(const std::string &_filename);
 
 private:
   static constexpr const char SLASH_REPLACE = '@';
-  std::string m_filename;
   std::string m_uri;
   std::filesystem::path m_path;
   std::string m_fileType;

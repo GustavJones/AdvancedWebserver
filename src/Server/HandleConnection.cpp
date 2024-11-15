@@ -342,11 +342,7 @@ bool LoadConfiguration(AdvancedWebserver::Configuration &_c,
     return false;
   }
 
-  if (_c.GetFilename() != "") {
-    filePath = _c.GetPath() / _c.GetFilename();
-  } else {
-    filePath = _c.GetPath();
-  }
+  filePath = _c.GetPath();
 
   if (!std::filesystem::exists(filePath)) {
     LOG("File cannot be found found in configuration " + _c.GetURI());
@@ -377,11 +373,7 @@ bool SendGetFileIOResponse(Configuration &_c, SSL *_ssl,
   int fileSize;
   char *buf;
 
-  if (_c.GetFilename() != "") {
-    filePath = _c.GetPath() / _c.GetFilename();
-  } else {
-    filePath = _c.GetPath();
-  }
+  filePath = _c.GetPath();
 
   // File_IO Configuration
   _resp.response_code = 200;
@@ -438,11 +430,7 @@ bool SendGetFolderIOResponse(AdvancedWebserver::Configuration &_c, SSL *_ssl,
   int fileSize;
   char *buf;
 
-  if (_c.GetFilename() != "") {
-    filePath = _c.GetPath() / _c.GetFilename();
-  } else {
-    filePath = _c.GetPath();
-  }
+  filePath = _c.GetPath();
 
   // Folder_IO Configuration
   if (!std::filesystem::exists(filePath) ||
