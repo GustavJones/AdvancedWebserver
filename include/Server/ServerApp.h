@@ -12,7 +12,9 @@ namespace AdvancedWebserver {
 class ServerApp {
 public:
   ServerApp(const std::string &_address, const int &_port,
-            const std::filesystem::path &_dataDir);
+            const std::filesystem::path &_dataDir,
+            const std::filesystem::path &_cert,
+            const std::filesystem::path &_key);
   ServerApp(ServerApp &&) = default;
   ServerApp(const ServerApp &) = default;
   ServerApp &operator=(ServerApp &&) = default;

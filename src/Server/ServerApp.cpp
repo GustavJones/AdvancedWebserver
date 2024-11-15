@@ -15,10 +15,12 @@
 
 namespace AdvancedWebserver {
 ServerApp::ServerApp(const std::string &_address, const int &_port,
-                     const std::filesystem::path &_dataDir)
+                     const std::filesystem::path &_dataDir,
+                     const std::filesystem::path &_cert,
+                     const std::filesystem::path &_key)
     : m_dataDir(_dataDir) {
   SetupSocket(_address, _port);
-  SetupSSL("domain.crt", "domain.key");
+  SetupSSL(_cert, _key);
 }
 
 void ServerApp::Run(
