@@ -4,10 +4,15 @@
 #include "Core/Core.h"
 #include "GNetworking/Socket.hpp"
 #include "GParsing/GParsing.hpp"
+#include "GParsing/HTTP/HTTPResponse.hpp"
 #include <chrono>
+#include <cstddef>
+#include <cstdio>
+#include <cstdlib>
 #include <ctime>
 #include <filesystem>
 #include <fstream>
+#include <ios>
 #include <iostream>
 #include <openssl/ssl.h>
 #include <openssl/types.h>
@@ -182,6 +187,77 @@ bool HasHostHeader(const GParsing::HTTPRequest &_req) {
   return HasHeaderWithValue(_req, "Host");
 }
 
+// TODO
+GParsing::HTTPResponse Execute(const std::string &_command,
+                               const GParsing::HTTPRequest &_req) {
+  std::string command;
+  std::vector<unsigned char> reqCharVector;
+  char *reqCharArray;
+  int reqCharArraySize;
+  std::vector<unsigned char> respCharVector;
+  char *respCharArray;
+  int respCharArraySize;
+  std::fstream file;
+  std::filesystem::path filePath;
+  std::filesystem::path filePathTemplate = DATA_DIR / "XXXXXX";
+  char *filePathTemplateCharArray;
+
+  filePathTemplateCharArray = new char[filePathTemplate.string().length()]();
+
+  for (int i = 0; i < filePathTemplate.string().length(); i++) {
+    filePathTemplateCharArray[i] = filePathTemplate.string()[i];
+  }
+
+  close(mkstemp(filePathTemplateCharArray));
+  for (int i = 0; i < filePathTemplate.string().length(); i++) {
+    filePath += filePathTemplateCharArray[i];
+  }
+  delete[] filePathTemplateCharArray;
+
+  reqCharVector = _req.CreateRequest();
+  reqCharArraySize = reqCharVector.size();
+  reqCharArray = new char[reqCharArraySize]();
+  file.open(filePath, std::ios::out | std::ios::binary);
+  GParsing::ConvertToCharPointer(reqCharVector, reqCharArray);
+  file.write(reqCharArray, reqCharArraySize);
+  delete[] reqCharArray;
+  file.close();
+
+  command += _command + ' ' + filePath.string();
+  LOG("------------------");
+  LOG("EXECUTABLE OUTPUT:");
+  LOG("------------------");
+  std::system(command.c_str());
+  std::cout << std::endl;
+  LOG("----------------------");
+  LOG("EXECUTABLE OUTPUT END.");
+  LOG("----------------------");
+
+  file.open(filePath, std::ios::in | std::ios::binary | std::ios::ate);
+  respCharArraySize = file.tellg();
+  file.seekg(file.beg);
+  respCharArray = new char[respCharArraySize]();
+
+  file.read(respCharArray, respCharArraySize);
+  respCharVector =
+      GParsing::ConvertToCharArray(respCharArray, respCharArraySize);
+  delete[] respCharArray;
+
+  file.close();
+
+  remove(filePath);
+
+  GParsing::HTTPResponse resp;
+
+  try {
+    resp.ParseResponse(respCharVector);
+    return resp;
+
+  } catch (const std::exception &) {
+    return {};
+  }
+}
+
 void SendHostHeaderErrorResponse(SSL *_ssl) {
   GParsing::HTTPResponse resp;
   std::vector<unsigned char> respVector;
@@ -245,7 +321,7 @@ bool SendGetResponse(SSL *_ssl, const GParsing::HTTPRequest &_req) {
              AdvancedWebserver::ConfigurationTypes
                  [AdvancedWebserver::EXECUTABLE]
                      .GetType()) {
-    return SendGetExecutableResponse(c, _ssl, CloseConnectionOnSuccess);
+    return SendGetExecutableResponse(_req, c, _ssl, CloseConnectionOnSuccess);
   } else if (c.GetConfigurationType().GetType() ==
              AdvancedWebserver::ConfigurationTypes
                  [AdvancedWebserver::CASCADING_EXECUTABLE]
@@ -344,7 +420,8 @@ bool LoadConfiguration(AdvancedWebserver::Configuration &_c,
 
   filePath = _c.GetPath();
 
-  if (!std::filesystem::exists(filePath)) {
+  if (!std::filesystem::exists(filePath) ||
+      !std::filesystem::is_regular_file(filePath)) {
     LOG("File cannot be found found in configuration " + _c.GetURI());
     _resp.version = "HTTP/1.1";
     _resp.response_code = 404;
@@ -433,24 +510,6 @@ bool SendGetFolderIOResponse(AdvancedWebserver::Configuration &_c, SSL *_ssl,
   filePath = _c.GetPath();
 
   // Folder_IO Configuration
-  if (!std::filesystem::exists(filePath) ||
-      !std::filesystem::is_regular_file(filePath)) {
-    LOG("Path " + (filePath).string() + " doesn't exist cannot GET");
-
-    _resp.version = "HTTP/1.1";
-    _resp.response_code = 404;
-    _resp.response_code_message = "Not Found";
-    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Connection", {"close"}));
-    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-        "Date", {GetCurrentDate()}));
-
-    _resp_vector = _resp.CreateResponse();
-    SendBuffer(_ssl, _resp_vector);
-
-    return false;
-  }
-
   file.open(filePath, std::ios::in | std::ios::ate);
   fileSize = file.tellg();
   file.seekg(file.beg);
@@ -495,24 +554,37 @@ bool SendGetFolderIOResponse(AdvancedWebserver::Configuration &_c, SSL *_ssl,
   }
 }
 
-bool SendGetExecutableResponse(AdvancedWebserver::Configuration &_c, SSL *_ssl,
+bool SendGetExecutableResponse(const GParsing::HTTPRequest &_req,
+                               AdvancedWebserver::Configuration &_c, SSL *_ssl,
                                bool _closeConnectionsOnSuccess) {
   GParsing::HTTPResponse _resp;
-  std::vector<unsigned char> _resp_vector;
+
+  SendContinueResponse(_ssl);
 
   // Executable Configuration
-  // TODO
-  _resp.version = "HTTP/1.1";
-  _resp.response_code = 501;
-  _resp.response_code_message = "Not Implemented";
-  _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-      "Connection", {"close"}));
-  _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-      "Date", {GetCurrentDate()}));
+  _resp = Execute(_c.GetPath(), _req);
+  if (_resp.version == "") {
+    _resp.version = "HTTP/1.1";
+    _resp.response_code = 500;
+    _resp.response_code_message = "Internal Server Error";
+    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+        "Connection", {"close"}));
+    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+        "Date", {GetCurrentDate()}));
 
-  _resp_vector = _resp.CreateResponse();
-  SendBuffer(_ssl, _resp_vector);
-  return false;
+    SendBuffer(_ssl, _resp.CreateResponse());
+    return false;
+  } else {
+    SendBuffer(_ssl, _resp.CreateResponse());
+
+    for (const auto &header : _resp.headers) {
+      if (header.first == "Connection" && header.second[0] == "close") {
+        return false;
+      }
+    }
+
+    return true;
+  }
 }
 
 bool SendGetCascadingExecutableResponse(AdvancedWebserver::Configuration &_c,

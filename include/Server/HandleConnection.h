@@ -26,6 +26,9 @@ bool HasHeaderWithValue(const GParsing::HTTPResponse &_req,
 
 bool HasHostHeader(const GParsing::HTTPRequest &_req);
 
+GParsing::HTTPResponse Execute(const std::string &_command,
+                               const GParsing::HTTPRequest &_req);
+
 void SendHostHeaderErrorResponse(SSL *_ssl);
 
 void SendContinueResponse(SSL *_ssl);
@@ -47,7 +50,8 @@ bool SendGetFileIOResponse(AdvancedWebserver::Configuration &_c, SSL *_ssl,
 bool SendGetFolderIOResponse(AdvancedWebserver::Configuration &_c, SSL *_ssl,
                              bool _closeConnectionsOnSuccess = false);
 
-bool SendGetExecutableResponse(AdvancedWebserver::Configuration &_c, SSL *_ssl,
+bool SendGetExecutableResponse(const GParsing::HTTPRequest &_req,
+                               AdvancedWebserver::Configuration &_c, SSL *_ssl,
                                bool _closeConnectionsOnSuccess = false);
 
 bool SendGetCascadingExecutableResponse(
