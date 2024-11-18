@@ -26,7 +26,7 @@ Run the `build/src/ConfigureTool/AdvancedWebserver-ConfigureTool` to configure t
 
 #### Prerequisites
 
-Install OpenSSL development libraries.
+Install OpenSSL Static development libraries.
 
 #### Building
 
