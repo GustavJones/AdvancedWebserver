@@ -35,13 +35,13 @@ static const std::vector<ConfigurationType> ConfigurationTypes = {
      "Read/Write a file from disk and return content. Works with "
      "dynamic URI path and multiple corresponding files in the folder."},
     {"executable",
-     "Execute a file with URI and the request as command line arguments "
-     "and response as output. Works for a static URI path and a single "
-     "executable."},
+     "Execute a file with a path to the request in a temp file as an argument "
+     "and response as output to the same temp file. Works for a static URI "
+     "path and a single executable."},
     {"cascading_executable",
-     "Execute a file with URI and the request as "
-     "command line arguments and response as output. Works for a dynamic URI "
-     "path and a multiple corresponding executables."}};
+     "Execute a file with a path to the request in a temp file as an "
+     "argument and response as output to the same temp file. Works for a "
+     "dynamic URI path and a single executable."}};
 
 enum Types { FILE_IO, FOLDER_IO, EXECUTABLE, CASCADING_EXECUTABLE };
 
