@@ -132,7 +132,10 @@ bool Configuration::ReadFile(const std::filesystem::path &_dataDir,
   SetPath(f_content.substr(delimiterIndexOld + 1,
                            delimiterIndex - delimiterIndexOld - 1));
 
-  if (filename != "") {
+  if (filename != "" && GetConfigurationType().GetType() ==
+                            AdvancedWebserver::ConfigurationTypes
+                                [AdvancedWebserver::Types::FOLDER_IO]
+                                    .GetType()) {
     SetPath(GetPath() / filename);
   }
 

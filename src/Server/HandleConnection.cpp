@@ -326,7 +326,7 @@ bool SendGetResponse(SSL *_ssl, const GParsing::HTTPRequest &_req) {
              AdvancedWebserver::ConfigurationTypes
                  [AdvancedWebserver::CASCADING_EXECUTABLE]
                      .GetType()) {
-    return SendGetCascadingExecutableResponse(c, _ssl,
+    return SendGetCascadingExecutableResponse(_req, c, _ssl,
                                               CloseConnectionOnSuccess);
   }
   return false;
@@ -583,29 +583,50 @@ bool SendGetExecutableResponse(const GParsing::HTTPRequest &_req,
       }
     }
 
-    return true;
+    if (_closeConnectionsOnSuccess) {
+      return false;
+    } else {
+      return true;
+    }
   }
 }
 
-bool SendGetCascadingExecutableResponse(AdvancedWebserver::Configuration &_c,
+bool SendGetCascadingExecutableResponse(const GParsing::HTTPRequest &_req,
+                                        AdvancedWebserver::Configuration &_c,
                                         SSL *_ssl,
                                         bool _closeConnectionsOnSuccess) {
   GParsing::HTTPResponse _resp;
-  std::vector<unsigned char> _resp_vector;
 
-  // Cascading Executable Configuration
-  // TODO
-  _resp.version = "HTTP/1.1";
-  _resp.response_code = 501;
-  _resp.response_code_message = "Not Implemented";
-  _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-      "Connection", {"close"}));
-  _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
-      "Date", {GetCurrentDate()}));
+  SendContinueResponse(_ssl);
 
-  _resp_vector = _resp.CreateResponse();
-  SendBuffer(_ssl, _resp_vector);
-  return false;
+  // Executable Configuration
+  _resp = Execute(_c.GetPath(), _req);
+  if (_resp.version == "") {
+    _resp.version = "HTTP/1.1";
+    _resp.response_code = 500;
+    _resp.response_code_message = "Internal Server Error";
+    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+        "Connection", {"close"}));
+    _resp.headers.push_back(std::pair<std::string, std::vector<std::string>>(
+        "Date", {GetCurrentDate()}));
+
+    SendBuffer(_ssl, _resp.CreateResponse());
+    return false;
+  } else {
+    SendBuffer(_ssl, _resp.CreateResponse());
+
+    for (const auto &header : _resp.headers) {
+      if (header.first == "Connection" && header.second[0] == "close") {
+        return false;
+      }
+    }
+
+    if (_closeConnectionsOnSuccess) {
+      return false;
+    } else {
+      return true;
+    }
+  }
 }
 
 } // namespace AdvancedWebserver

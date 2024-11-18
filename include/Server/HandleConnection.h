@@ -55,6 +55,6 @@ bool SendGetExecutableResponse(const GParsing::HTTPRequest &_req,
                                bool _closeConnectionsOnSuccess = false);
 
 bool SendGetCascadingExecutableResponse(
-    AdvancedWebserver::Configuration &_c, SSL *_ssl,
-    bool _closeConnectionsOnSuccess = false);
+    const GParsing::HTTPRequest &_req, AdvancedWebserver::Configuration &_c,
+    SSL *_ssl, bool _closeConnectionsOnSuccess = false);
 } // namespace AdvancedWebserver
