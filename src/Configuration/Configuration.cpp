@@ -51,7 +51,11 @@ bool Configuration::WriteFile(const std::filesystem::path &_dataDir,
           m_type.GetType() == AdvancedWebserver::ConfigurationTypes
                                   [AdvancedWebserver::Types::EXECUTABLE]
                                       .GetType()) {
-        uri.erase(uri.length() - 1);
+        std::string compareStr;
+        compareStr += _slashReplace;
+        if (uri != compareStr) {
+          uri.erase(uri.length() - 1);
+        }
       }
     }
 
