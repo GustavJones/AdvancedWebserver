@@ -1,8 +1,9 @@
 # Advanced Webserver
 
 1. Description
-2. Usage
-3. Building
+2. Modes
+3. Usage
+4. Building
 
 ## Description
 
