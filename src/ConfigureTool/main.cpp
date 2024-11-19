@@ -8,6 +8,7 @@
 
 int main(int argc, char *argv[]) {
   bool validConfigurationType = false;
+  bool notExecutable = true;
 
   GArgs::Parser p("AdvancedWebserver Configure Tool", "V1.0", true);
   p.AddStructure(
@@ -67,11 +68,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  if (p["http_file_type"].empty() || p["http_file_type"].size() > 1) {
-    std::cerr << "Incorrect file/program type" << std::endl;
-    return 1;
-  }
-
   for (const auto &conf : AdvancedWebserver::ConfigurationTypes) {
     if (conf.GetType() == p["type"][0]) {
       validConfigurationType = true;
@@ -85,6 +81,24 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  if (((p["type"][0] ==
+        AdvancedWebserver::ConfigurationTypes[AdvancedWebserver::Types::FILE_IO]
+            .GetType()) ||
+       (p["type"][0] == AdvancedWebserver::ConfigurationTypes
+                            [AdvancedWebserver::Types::FOLDER_IO]
+                                .GetType()))) {
+    notExecutable = true;
+  } else {
+    notExecutable = false;
+  }
+
+  if (p["http_file_type"].empty() || p["http_file_type"].size() > 1) {
+    if (notExecutable) {
+      std::cerr << "Incorrect file/program type" << std::endl;
+      return 1;
+    }
+  }
+
   AdvancedWebserver::Configuration c(p["uri"][0]);
 
   for (const auto &confType : AdvancedWebserver::ConfigurationTypes) {
@@ -94,7 +108,11 @@ int main(int argc, char *argv[]) {
   }
 
   c.SetPath(p["file"][0]);
-  c.SetFileType(p["http_file_type"][0]);
+  if (notExecutable) {
+    c.SetFileType(p["http_file_type"][0]);
+  } else {
+    c.SetFileType("");
+  }
 
   if (c.WriteFile(AdvancedWebserver::DATA_DIR)) {
     std::cout << "Configuration file created successfully for " << p["uri"][0]
