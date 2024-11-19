@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
   std::string address = ADDRESS;
   int port = PORT;
 
-  GArgs::Parser p("AdvancedWebserver", "V1.0");
+  GArgs::Parser p("AdvancedWebserver", AdvancedWebserver::VERSION);
   p.AddStructure(
       "[flags:help=Any flags to pass the "
       "application,argument_filter=-,value_amount=0;cert:help=The SSL "

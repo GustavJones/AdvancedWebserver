@@ -10,7 +10,8 @@ int main(int argc, char *argv[]) {
   bool validConfigurationType = false;
   bool notExecutable = true;
 
-  GArgs::Parser p("AdvancedWebserver Configure Tool", "V1.0", true);
+  GArgs::Parser p("AdvancedWebserver Configure Tool",
+                  AdvancedWebserver::VERSION, true);
   p.AddStructure(
       "[flags:help=Application "
       "flags,argument_filter=-,value_amount=0;uri:help=The uri the webserver "
