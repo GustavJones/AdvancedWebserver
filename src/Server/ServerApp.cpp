@@ -56,8 +56,9 @@ void ServerApp::SetupSocket(const std::string &_address, const int &_port) {
 
   // fcntl(m_serverSock.sock, F_SETFL,
   // fcntl(m_serverSock.sock, F_GETFL, 0) | O_NONBLOCK);
-  setsockopt(m_serverSock.sock, SOL_SOCKET, SO_REUSEADDR, (int *)1,
-             sizeof(int));
+  int opt = 1;
+  setsockopt(m_serverSock.sock, SOL_SOCKET, SO_REUSEADDR, &opt,
+             sizeof(opt));
 
   signal(SIGPIPE, SIG_IGN);
 
