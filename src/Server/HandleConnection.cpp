@@ -202,11 +202,12 @@ GParsing::HTTPResponse Execute(const std::string &_command,
   std::filesystem::path filePathTemplate = DATA_DIR / "XXXXXX";
   char *filePathTemplateCharArray;
 
-  filePathTemplateCharArray = new char[filePathTemplate.string().length()]();
+  filePathTemplateCharArray = new char[filePathTemplate.string().length() + 1]();
 
   for (int i = 0; i < filePathTemplate.string().length(); i++) {
     filePathTemplateCharArray[i] = filePathTemplate.string()[i];
   }
+  filePathTemplateCharArray[filePathTemplate.string().length()] = '\0';
 
   close(mkstemp(filePathTemplateCharArray));
   for (int i = 0; i < filePathTemplate.string().length(); i++) {
@@ -224,6 +225,7 @@ GParsing::HTTPResponse Execute(const std::string &_command,
   file.close();
 
   command += _command + ' ' + filePath.string();
+  LOG("Running: " + command);
   LOG("------------------");
   LOG("EXECUTABLE OUTPUT:");
   LOG("------------------");
