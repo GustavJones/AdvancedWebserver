@@ -30,8 +30,8 @@ bool Configuration::WriteFile(const std::filesystem::path &_dataDir,
       }
     }
 
-    output += m_type.GetType() + ':';
-    output += std::filesystem::absolute(m_path).string() + ':';
+    output += m_type.GetType() + _slashReplace;
+    output += std::filesystem::absolute(m_path).string() + _slashReplace;
     output += m_fileType;
 
     if (uri[uri.length() - 1] != _slashReplace) {
@@ -113,7 +113,7 @@ bool Configuration::ReadFile(const std::filesystem::path &_dataDir,
   f.close();
 
   // Type
-  delimiterIndex = f_content.find(':');
+  delimiterIndex = f_content.find(_slashReplace);
   if (delimiterIndex == f_content.npos) {
     return false;
   }
@@ -128,7 +128,7 @@ bool Configuration::ReadFile(const std::filesystem::path &_dataDir,
 
   // Path
   delimiterIndexOld = delimiterIndex;
-  delimiterIndex = f_content.find(':', delimiterIndexOld + 1);
+  delimiterIndex = f_content.find(_slashReplace, delimiterIndexOld + 1);
   if (delimiterIndex == f_content.npos) {
     return false;
   }
@@ -214,7 +214,7 @@ bool Configuration::IsStaticType(const std::filesystem::path &_dataDir,
     delete[] f_raw_content;
     f.close();
 
-    delimiterIndex = f_content.find(':');
+    delimiterIndex = f_content.find(_slashReplace);
 
     if (delimiterIndex == f_content.npos) {
       return false;
@@ -293,7 +293,7 @@ bool Configuration::IsDynamicType(const std::filesystem::path &_dataDir,
     delete[] f_raw_content;
     f.close();
 
-    delimiterIndex = f_content.find(':');
+    delimiterIndex = f_content.find(_slashReplace);
 
     if (delimiterIndex == f_content.npos) {
       return false;
@@ -326,48 +326,6 @@ std::string Configuration::ConvertSlashes(const std::string &_uri,
   }
 
   return uri;
-}
-
-bool Configuration::IsFolderConfiguration(const std::filesystem::path &_path) {
-  std::fstream f;
-  std::string typeStr;
-  std::string parse;
-  int delimiterPos;
-
-  int fileContentLen;
-  char *fileContent;
-
-  f.open(_path, std::ios::in | std::ios::ate);
-  fileContentLen = f.tellg();
-  f.seekg(f.beg);
-
-  fileContent = new char[fileContentLen]();
-
-  f.read(fileContent, fileContentLen);
-  f.close();
-
-  parse = "";
-  for (int i = 0; i < fileContentLen; i++) {
-    parse += fileContent[i];
-  }
-
-  delete[] fileContent;
-
-  delimiterPos = parse.find(':');
-
-  if (delimiterPos == parse.npos) {
-    throw std::runtime_error("Cannot find a readable configuration");
-  }
-
-  typeStr = parse.substr(0, delimiterPos);
-
-  if (typeStr !=
-      AdvancedWebserver::ConfigurationTypes[AdvancedWebserver::Types::FOLDER_IO]
-          .GetType()) {
-    return false;
-  } else {
-    return true;
-  }
 }
 
 std::string Configuration::GetDynamicFilename(const std::string &_uri,

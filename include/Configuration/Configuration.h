@@ -57,8 +57,6 @@ private:
   std::string ConvertSlashes(const std::string &_uri,
                              const char &_slashReplace);
 
-  bool IsFolderConfiguration(const std::filesystem::path &_path);
-
   std::string GetDynamicFilename(const std::string &_uri,
                                  const char &_slashReplace);
 };
