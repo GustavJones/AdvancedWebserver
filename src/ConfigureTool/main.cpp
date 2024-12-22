@@ -18,6 +18,8 @@ int main(int argc, char *argv[]) {
       "will access;type:help=Set the type of action to perform on URI "
       "request;file:help=The file or program to access from "
       "URI;http_file_type:help=Set the Content-Type of the file]");
+  p.AddKey(
+      GArgs::Key("flags", "--verbose | -v", "Display what uri was configured"));
   p.AddKey(GArgs::Key("flags", "--help | -h", "Display this message"));
   p.AddKey(GArgs::Key("flags", "--set-data-dir",
                       "Set the directory where the Webserver data is stored"));
@@ -116,8 +118,10 @@ int main(int argc, char *argv[]) {
   }
 
   if (c.WriteFile(AdvancedWebserver::DATA_DIR)) {
-    std::cout << "Configuration file created successfully for " << p["uri"][0]
-              << std::endl;
+    if (p.Contains("flags", "-v")) {
+      std::cout << "Configuration file created successfully for " << p["uri"][0]
+                << std::endl;
+    }
     return 0;
   } else {
     std::cerr << "Failed to generate configuration file for " << p["uri"][0]
