@@ -1,26 +1,27 @@
 #pragma once
+#include "Core.h"
 #include <string>
 #include <vector>
 
 namespace AdvancedWebserver {
 class ConfigurationType {
 public:
-  ConfigurationType(const std::string &_type = "",
+  ADVANCEDWEBSERVER_CONFIGURATION_API ConfigurationType(const std::string &_type = "",
                     const std::string &_description = "");
-  ConfigurationType(ConfigurationType &&) = default;
-  ConfigurationType(const ConfigurationType &) = default;
-  ConfigurationType &operator=(ConfigurationType &&) = default;
-  ConfigurationType &operator=(const ConfigurationType &) = default;
-  ~ConfigurationType();
+  ADVANCEDWEBSERVER_CONFIGURATION_API ConfigurationType(ConfigurationType &&) = default;
+  ADVANCEDWEBSERVER_CONFIGURATION_API ConfigurationType(const ConfigurationType &) = default;
+  ADVANCEDWEBSERVER_CONFIGURATION_API ConfigurationType &operator=(ConfigurationType &&) = default;
+  ADVANCEDWEBSERVER_CONFIGURATION_API ConfigurationType &operator=(const ConfigurationType &) = default;
+  ADVANCEDWEBSERVER_CONFIGURATION_API ~ConfigurationType();
 
   // [[deprecated("Not working")]]
   // bool operator==(const ConfigurationType &_ct);
 
-  const std::string &GetType() const;
-  const std::string &GetDescription() const;
+  ADVANCEDWEBSERVER_CONFIGURATION_API const std::string &GetType() const;
+  ADVANCEDWEBSERVER_CONFIGURATION_API const std::string &GetDescription() const;
 
-  void SetType(const std::string &_type);
-  void SetDescription(const std::string &_description);
+  ADVANCEDWEBSERVER_CONFIGURATION_API void SetType(const std::string &_type);
+  ADVANCEDWEBSERVER_CONFIGURATION_API void SetDescription(const std::string &_description);
 
 private:
   std::string m_type;
