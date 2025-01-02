@@ -7,7 +7,7 @@
 #include <string>
 
 static constexpr const char ADDRESS[] = "0.0.0.0";
-static constexpr const int PORT = 8081;
+static constexpr const int PORT = 8080;
 
 int main(int argc, char *argv[]) {
   std::string address = ADDRESS;
@@ -20,9 +20,9 @@ int main(int argc, char *argv[]) {
       "certificate to use;key:help=The SSL key for the certificate]");
 
   p.AddKey(GArgs::Key("flags", "--help | -h", "Display this message"));
-  p.AddKey(GArgs::Key("flags", "--address=0.0.0.0",
+  p.AddKey(GArgs::Key("flags", "--address=" + (std::string)ADDRESS,
                       "Sets the address to listen on"));
-  p.AddKey(GArgs::Key("flags", "--port=8081", "Sets the port to listen on"));
+  p.AddKey(GArgs::Key("flags", "--port=" + std::to_string(PORT), "Sets the port to listen on"));
   p.AddKey(GArgs::Key("flags",
                       "--set-data-dir=$HOME/.local/share/AdvancedWebserver/",
                       "Set the directory where the Webserver data is stored"));
